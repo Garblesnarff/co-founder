@@ -8,3 +8,4 @@ export * from './task-notes';
 export * from './work-sessions';
 export * from './project-context';
 export * from './decisions';
+export * from './mcp-issues';
