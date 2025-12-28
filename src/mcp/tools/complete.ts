@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import type { AuthContext } from '../../middleware/auth.js';
 import { getState, clearCurrentTask, assignTask, incrementStreak } from '../../services/state-service.js';
-import { getNextTask, removeTask, getQueueDepth } from '../../services/queue-service.js';
+import { removeTask, getQueueDepth, getNextUnblockedTask, getTasksUnblockedBy } from '../../services/queue-service.js';
 import { completeTask } from '../../services/completion-service.js';
 import { incrementTasksCompleted } from '../../services/daily-log-service.js';
+import { incrementSessionTasks, getActiveSession } from '../../services/session-service.js';
 
 export const cofounderCompleteTool = {
   name: 'cofounder_complete',
@@ -50,9 +51,12 @@ export async function handleCofounderComplete(args: unknown, auth: AuthContext) 
     null // project can be added later
   );
 
+  const completedTaskId = state.currentTaskId;
+  const completedTaskName = state.currentTask;
+
   // Remove from queue if it was queued
-  if (state.currentTaskId) {
-    await removeTask(state.currentTaskId);
+  if (completedTaskId) {
+    await removeTask(completedTaskId);
   }
 
   // Update daily log
@@ -61,9 +65,19 @@ export async function handleCofounderComplete(args: unknown, auth: AuthContext) 
   // Update streak
   await incrementStreak();
 
-  // Get next task
-  const nextTask = await getNextTask();
-  const completedTaskName = state.currentTask;
+  // Update session task count if in a session
+  const session = await getActiveSession();
+  if (session) {
+    await incrementSessionTasks(session.id);
+  }
+
+  // Check what tasks are now unblocked by this completion
+  const unblockedTasks = completedTaskId
+    ? await getTasksUnblockedBy(completedTaskId)
+    : [];
+
+  // Get next unblocked task
+  const nextTask = await getNextUnblockedTask();
 
   if (nextTask) {
     await assignTask(nextTask.task, nextTask.context, nextTask.id);
@@ -80,6 +94,7 @@ export async function handleCofounderComplete(args: unknown, auth: AuthContext) 
     newTaskContext: nextTask?.context || null,
     streakDays: newState?.streakDays || 0,
     queueRemaining,
+    unblockedTasks: unblockedTasks.map(t => ({ id: t.id, task: t.task })),
     message: nextTask
       ? `Good. Next: ${nextTask.task}`
       : 'Queue empty. Add more tasks.',

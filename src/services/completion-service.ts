@@ -1,6 +1,6 @@
 import { db } from '../db/client.js';
 import { completedTasks, type CompletedTask, type NewCompletedTask } from '../db/schema/index.js';
-import { desc, gte, sql } from 'drizzle-orm';
+import { desc, gte, sql, eq, and } from 'drizzle-orm';
 
 export async function completeTask(
   task: string,
@@ -34,6 +34,30 @@ export async function getCompletedTasks(since?: Date): Promise<CompletedTask[]> 
     .select()
     .from(completedTasks)
     .orderBy(desc(completedTasks.completedAt));
+}
+
+export async function listCompletedTasks(
+  limit: number = 10,
+  project?: string,
+  since?: Date
+): Promise<CompletedTask[]> {
+  let query = db.select().from(completedTasks);
+
+  const conditions = [];
+  if (project) {
+    conditions.push(eq(completedTasks.project, project));
+  }
+  if (since) {
+    conditions.push(gte(completedTasks.completedAt, since));
+  }
+
+  if (conditions.length > 0) {
+    query = query.where(and(...conditions)) as typeof query;
+  }
+
+  return query
+    .orderBy(desc(completedTasks.completedAt))
+    .limit(limit);
 }
 
 export async function getStats(): Promise<{

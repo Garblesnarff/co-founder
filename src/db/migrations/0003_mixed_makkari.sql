@@ -1,0 +1,1 @@
+ALTER TABLE "task_queue" ADD COLUMN "blocked_by" jsonb DEFAULT '[]'::jsonb;

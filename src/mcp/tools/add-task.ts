@@ -29,6 +29,11 @@ export const cofounderAddTaskTool = {
         type: 'string',
         description: 'Project: infinite_realms, infrastructure, sanctuary, other',
       },
+      blockedBy: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Array of task IDs that must complete before this task can start',
+      },
     },
     required: ['task'],
   },
@@ -40,6 +45,7 @@ const inputSchema = z.object({
   priority: z.number().min(0).max(10).optional().default(5),
   estimatedMinutes: z.number().optional(),
   project: z.enum(['infinite_realms', 'infrastructure', 'sanctuary', 'other']).optional(),
+  blockedBy: z.array(z.number()).optional().default([]),
 });
 
 export async function handleCofounderAddTask(args: unknown, auth: AuthContext) {
@@ -54,7 +60,8 @@ export async function handleCofounderAddTask(args: unknown, auth: AuthContext) {
     input.priority,
     input.project || null,
     input.context || null,
-    auth.userId || 'ai'
+    auth.userId || 'ai',
+    input.blockedBy
   );
 
   await incrementTasksAssigned();
@@ -64,8 +71,10 @@ export async function handleCofounderAddTask(args: unknown, auth: AuthContext) {
   const position = queue.findIndex(t => t.id === created.id) + 1;
 
   return {
+    id: created.id,
     added: input.task,
     priority: input.priority,
+    blockedBy: input.blockedBy.length > 0 ? input.blockedBy : null,
     queuePosition: position,
     queueDepth: await getQueueDepth(),
   };

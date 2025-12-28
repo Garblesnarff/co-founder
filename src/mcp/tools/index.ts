@@ -21,6 +21,7 @@ import { cofounderGetProjectContextTool, handleCofounderGetProjectContext } from
 import { cofounderUpdateProjectContextTool, handleCofounderUpdateProjectContext } from './update-project-context.js';
 import { cofounderLogDecisionTool, handleCofounderLogDecision } from './log-decision.js';
 import { cofounderGetDecisionsTool, handleCofounderGetDecisions } from './get-decisions.js';
+import { cofounderListCompletedTool, handleCofounderListCompleted } from './list-completed.js';
 
 export const tools = [
   cofounderCheckinTool,
@@ -44,6 +45,7 @@ export const tools = [
   cofounderUpdateProjectContextTool,
   cofounderLogDecisionTool,
   cofounderGetDecisionsTool,
+  cofounderListCompletedTool,
 ];
 
 export async function handleToolCall(
@@ -94,6 +96,8 @@ export async function handleToolCall(
       return handleCofounderLogDecision(args, auth);
     case 'cofounder_get_decisions':
       return handleCofounderGetDecisions(args, auth);
+    case 'cofounder_list_completed':
+      return handleCofounderListCompleted(args, auth);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }

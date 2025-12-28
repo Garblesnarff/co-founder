@@ -28,6 +28,11 @@ export const cofounderUpdateTaskTool = {
         type: 'string',
         description: 'Updated project: infinite_realms, infrastructure, sanctuary, other (optional)',
       },
+      blockedBy: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Updated list of task IDs that must complete first',
+      },
     },
     required: ['taskId'],
   },
@@ -39,6 +44,7 @@ const inputSchema = z.object({
   context: z.string().nullable().optional(),
   estimatedMinutes: z.number().nullable().optional(),
   project: z.string().nullable().optional(),
+  blockedBy: z.array(z.number()).optional(),
 });
 
 export async function handleCofounderUpdateTask(args: unknown, auth: AuthContext) {
@@ -60,12 +66,14 @@ export async function handleCofounderUpdateTask(args: unknown, auth: AuthContext
     context?: string | null;
     estimatedMinutes?: number | null;
     project?: string | null;
+    blockedBy?: number[];
   } = {};
 
   if (input.task !== undefined) updates.task = input.task;
   if (input.context !== undefined) updates.context = input.context;
   if (input.estimatedMinutes !== undefined) updates.estimatedMinutes = input.estimatedMinutes;
   if (input.project !== undefined) updates.project = input.project;
+  if (input.blockedBy !== undefined) updates.blockedBy = input.blockedBy;
 
   // Require at least one update
   if (Object.keys(updates).length === 0) {
@@ -81,12 +89,14 @@ export async function handleCofounderUpdateTask(args: unknown, auth: AuthContext
       context: existing.context,
       estimatedMinutes: existing.estimatedMinutes,
       project: existing.project,
+      blockedBy: existing.blockedBy,
     },
     after: {
       task: updated?.task,
       context: updated?.context,
       estimatedMinutes: updated?.estimatedMinutes,
       project: updated?.project,
+      blockedBy: updated?.blockedBy,
     },
   };
 }
