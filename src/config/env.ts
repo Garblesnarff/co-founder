@@ -6,6 +6,11 @@ const envSchema = z.object({
   BASE_URL: z.string().default('http://localhost:8890'),
   DATABASE_URL: z.string(),
   JWT_SECRET: z.string().default('dev_secret_change_me'),
+  // WorkOS OAuth
+  WORKOS_API_KEY: z.string(),
+  WORKOS_CLIENT_ID: z.string(),
+  // Role Configuration
+  ADMIN_USER_IDS: z.string().default(''),
 });
 
 function loadEnv() {
@@ -19,3 +24,4 @@ function loadEnv() {
 }
 
 export const env = loadEnv();
+export const adminUserIds = env.ADMIN_USER_IDS.split(',').filter(Boolean);

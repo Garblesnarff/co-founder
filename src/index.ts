@@ -2,6 +2,7 @@ import express from 'express';
 import { env } from './config/env.js';
 import healthRouter from './routes/health.js';
 import mcpRouter from './routes/mcp.js';
+import oauthRouter from './routes/oauth.js';
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use(healthRouter);
+app.use(oauthRouter);
 app.use(mcpRouter);
 
 // Root
@@ -34,6 +36,12 @@ app.get('/', (_req, res) => {
     endpoints: {
       health: '/health',
       mcp: '/mcp (POST)',
+      oauth: {
+        authorize: '/authorize',
+        token: '/token',
+        register: '/register',
+        metadata: '/.well-known/oauth-authorization-server',
+      },
     },
   });
 });

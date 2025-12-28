@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { db } from '../db/client.js';
 import { apiKeys } from '../db/schema/index.js';
 import { eq } from 'drizzle-orm';
+import { verifyToken, type AuthTokenPayload } from '../lib/jwt.js';
 
 export interface AuthContext {
   userId: string | null;
@@ -40,16 +41,35 @@ async function verifyApiKey(token: string): Promise<AuthContext | null> {
   };
 }
 
+function verifyJwtToken(token: string): AuthContext | null {
+  try {
+    const payload = verifyToken(token);
+    return {
+      userId: payload.userId,
+      roles: payload.roles || ['authenticated'],
+      isAnonymous: false,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function extractAuthContext(req: Request): Promise<AuthContext> {
   const authHeader = req.headers.authorization;
 
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
 
-    // Try API key
+    // Try API key first
     const apiKeyAuth = await verifyApiKey(token);
     if (apiKeyAuth) {
       return apiKeyAuth;
+    }
+
+    // Try JWT token (from OAuth)
+    const jwtAuth = verifyJwtToken(token);
+    if (jwtAuth) {
+      return jwtAuth;
     }
   }
 
