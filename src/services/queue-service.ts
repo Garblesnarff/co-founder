@@ -64,3 +64,25 @@ export async function getQueueDepth(): Promise<number> {
   const queue = await getQueue();
   return queue.length;
 }
+
+export async function updateTask(id: number, updates: {
+  task?: string;
+  context?: string | null;
+  estimatedMinutes?: number | null;
+  project?: string | null;
+}): Promise<TaskQueueItem | null> {
+  const [updated] = await db
+    .update(taskQueue)
+    .set(updates)
+    .where(eq(taskQueue.id, id))
+    .returning();
+  return updated || null;
+}
+
+export async function deleteTask(id: number): Promise<TaskQueueItem | null> {
+  const [deleted] = await db
+    .delete(taskQueue)
+    .where(eq(taskQueue.id, id))
+    .returning();
+  return deleted || null;
+}

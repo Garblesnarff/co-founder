@@ -8,6 +8,9 @@ import { cofounderQueueTool, handleCofounderQueue } from './queue.js';
 import { cofounderStatsTool, handleCofounderStats } from './stats.js';
 import { cofounderReprioritizeTool, handleCofounderReprioritize } from './reprioritize.js';
 import { cofounderLogMoodTool, handleCofounderLogMood } from './log-mood.js';
+import { cofounderUpdateTaskTool, handleCofounderUpdateTask } from './update-task.js';
+import { cofounderDeleteTaskTool, handleCofounderDeleteTask } from './delete-task.js';
+import { cofounderClaimTaskTool, handleCofounderClaimTask } from './claim-task.js';
 
 export const tools = [
   cofounderCheckinTool,
@@ -18,6 +21,9 @@ export const tools = [
   cofounderStatsTool,
   cofounderReprioritizeTool,
   cofounderLogMoodTool,
+  cofounderUpdateTaskTool,
+  cofounderDeleteTaskTool,
+  cofounderClaimTaskTool,
 ];
 
 export async function handleToolCall(
@@ -42,6 +48,12 @@ export async function handleToolCall(
       return handleCofounderReprioritize(args, auth);
     case 'cofounder_log_mood':
       return handleCofounderLogMood(args, auth);
+    case 'cofounder_update_task':
+      return handleCofounderUpdateTask(args, auth);
+    case 'cofounder_delete_task':
+      return handleCofounderDeleteTask(args, auth);
+    case 'cofounder_claim_task':
+      return handleCofounderClaimTask(args, auth);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
