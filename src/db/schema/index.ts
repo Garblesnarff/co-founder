@@ -4,3 +4,7 @@ export * from './completed-tasks';
 export * from './blockers';
 export * from './daily-log';
 export * from './api-keys';
+export * from './task-notes';
+export * from './work-sessions';
+export * from './project-context';
+export * from './decisions';

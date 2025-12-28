@@ -15,6 +15,13 @@
       "when": 1766899466712,
       "tag": "0001_strange_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1766900230471,
+      "tag": "0002_foamy_layla_miller",
+      "breakpoints": true
     }
   ]
 }

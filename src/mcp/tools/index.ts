@@ -12,6 +12,15 @@ import { cofounderUpdateTaskTool, handleCofounderUpdateTask } from './update-tas
 import { cofounderDeleteTaskTool, handleCofounderDeleteTask } from './delete-task.js';
 import { cofounderClaimTaskTool, handleCofounderClaimTask } from './claim-task.js';
 import { cofounderUpdateProgressTool, handleCofounderUpdateProgress } from './update-progress.js';
+import { cofounderAddTaskNoteTool, handleCofounderAddTaskNote } from './add-task-note.js';
+import { cofounderGetTaskNotesTool, handleCofounderGetTaskNotes } from './get-task-notes.js';
+import { cofounderStartSessionTool, handleCofounderStartSession } from './start-session.js';
+import { cofounderEndSessionTool, handleCofounderEndSession } from './end-session.js';
+import { cofounderGetSessionTool, handleCofounderGetSession } from './get-session.js';
+import { cofounderGetProjectContextTool, handleCofounderGetProjectContext } from './get-project-context.js';
+import { cofounderUpdateProjectContextTool, handleCofounderUpdateProjectContext } from './update-project-context.js';
+import { cofounderLogDecisionTool, handleCofounderLogDecision } from './log-decision.js';
+import { cofounderGetDecisionsTool, handleCofounderGetDecisions } from './get-decisions.js';
 
 export const tools = [
   cofounderCheckinTool,
@@ -26,6 +35,15 @@ export const tools = [
   cofounderDeleteTaskTool,
   cofounderClaimTaskTool,
   cofounderUpdateProgressTool,
+  cofounderAddTaskNoteTool,
+  cofounderGetTaskNotesTool,
+  cofounderStartSessionTool,
+  cofounderEndSessionTool,
+  cofounderGetSessionTool,
+  cofounderGetProjectContextTool,
+  cofounderUpdateProjectContextTool,
+  cofounderLogDecisionTool,
+  cofounderGetDecisionsTool,
 ];
 
 export async function handleToolCall(
@@ -58,6 +76,24 @@ export async function handleToolCall(
       return handleCofounderClaimTask(args, auth);
     case 'cofounder_update_progress':
       return handleCofounderUpdateProgress(args, auth);
+    case 'cofounder_add_task_note':
+      return handleCofounderAddTaskNote(args, auth);
+    case 'cofounder_get_task_notes':
+      return handleCofounderGetTaskNotes(args, auth);
+    case 'cofounder_start_session':
+      return handleCofounderStartSession(args, auth);
+    case 'cofounder_end_session':
+      return handleCofounderEndSession(args, auth);
+    case 'cofounder_get_session':
+      return handleCofounderGetSession(args, auth);
+    case 'cofounder_get_project_context':
+      return handleCofounderGetProjectContext(args, auth);
+    case 'cofounder_update_project_context':
+      return handleCofounderUpdateProjectContext(args, auth);
+    case 'cofounder_log_decision':
+      return handleCofounderLogDecision(args, auth);
+    case 'cofounder_get_decisions':
+      return handleCofounderGetDecisions(args, auth);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
