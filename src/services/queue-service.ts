@@ -1,5 +1,6 @@
 import { db } from '../db/client.js';
 import { taskQueue, type TaskQueueItem, type NewTaskQueueItem } from '../db/schema/index.js';
+import { founderState } from '../db/schema/index.js';
 import { eq, desc } from 'drizzle-orm';
 
 export async function getQueue(): Promise<TaskQueueItem[]> {
@@ -90,15 +91,22 @@ export async function deleteTask(id: number): Promise<TaskQueueItem | null> {
   return deleted || null;
 }
 
-// Check if a task is blocked (any of its blockedBy tasks still exist in queue)
+// Check if a task is blocked (any of its blockedBy tasks still exist in queue OR are in progress)
 export async function isTaskBlocked(task: TaskQueueItem): Promise<boolean> {
   const blockedBy = task.blockedBy || [];
   if (blockedBy.length === 0) return false;
 
-  // Check if any blocking tasks still exist
+  // Get current task ID (claimed tasks are removed from queue but still in progress)
+  const [state] = await db.select().from(founderState).where(eq(founderState.id, 1)).limit(1);
+  const currentTaskId = state?.currentTaskId;
+
+  // Check if any blocking tasks still exist in queue OR are currently being worked on
   for (const blockingId of blockedBy) {
+    // Check if blocker is the current task (in progress)
+    if (currentTaskId === blockingId) return true;
+    // Check if blocker is still in queue
     const blocking = await getTaskById(blockingId);
-    if (blocking) return true; // Still blocked
+    if (blocking) return true;
   }
   return false; // All blocking tasks completed
 }
@@ -108,11 +116,15 @@ export async function getTasksUnblockedBy(completedTaskId: number): Promise<Task
   const queue = await getQueue();
   const unblocked: TaskQueueItem[] = [];
 
+  // Get current task ID (the one being completed - still set at this point)
+  const [state] = await db.select().from(founderState).where(eq(founderState.id, 1)).limit(1);
+  const currentTaskId = state?.currentTaskId;
+
   for (const task of queue) {
     const blockedBy = task.blockedBy || [];
     if (blockedBy.includes(completedTaskId)) {
-      // Check if this was the only blocker
-      const remainingBlockers = blockedBy.filter(id => id !== completedTaskId);
+      // Check if any OTHER blockers remain (not the one being completed, not the current task)
+      const remainingBlockers = blockedBy.filter(id => id !== completedTaskId && id !== currentTaskId);
       let stillBlocked = false;
       for (const blockerId of remainingBlockers) {
         const blocker = await getTaskById(blockerId);
