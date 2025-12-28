@@ -8,6 +8,13 @@
       "when": 1766894197485,
       "tag": "0000_quick_mongu",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1766899466712,
+      "tag": "0001_strange_valeria_richards",
+      "breakpoints": true
     }
   ]
 }

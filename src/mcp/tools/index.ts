@@ -11,6 +11,7 @@ import { cofounderLogMoodTool, handleCofounderLogMood } from './log-mood.js';
 import { cofounderUpdateTaskTool, handleCofounderUpdateTask } from './update-task.js';
 import { cofounderDeleteTaskTool, handleCofounderDeleteTask } from './delete-task.js';
 import { cofounderClaimTaskTool, handleCofounderClaimTask } from './claim-task.js';
+import { cofounderUpdateProgressTool, handleCofounderUpdateProgress } from './update-progress.js';
 
 export const tools = [
   cofounderCheckinTool,
@@ -24,6 +25,7 @@ export const tools = [
   cofounderUpdateTaskTool,
   cofounderDeleteTaskTool,
   cofounderClaimTaskTool,
+  cofounderUpdateProgressTool,
 ];
 
 export async function handleToolCall(
@@ -54,6 +56,8 @@ export async function handleToolCall(
       return handleCofounderDeleteTask(args, auth);
     case 'cofounder_claim_task':
       return handleCofounderClaimTask(args, auth);
+    case 'cofounder_update_progress':
+      return handleCofounderUpdateProgress(args, auth);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }

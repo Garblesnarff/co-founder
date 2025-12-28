@@ -49,3 +49,14 @@ export async function resetStreak(): Promise<FounderState> {
 export async function recordCheckin(): Promise<FounderState> {
   return updateState({ lastCheckin: new Date() });
 }
+
+export async function updateProgress(
+  currentRevenue: string,
+  subscribers: number,
+): Promise<FounderState> {
+  return updateState({
+    currentRevenue,
+    subscribers,
+    lastProgressUpdate: new Date(),
+  });
+}
