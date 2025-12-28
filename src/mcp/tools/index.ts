@@ -25,6 +25,7 @@ import { cofounderListCompletedTool, handleCofounderListCompleted } from './list
 import { cofounderReportIssueTool, handleCofounderReportIssue } from './report-issue.js';
 import { cofounderGetIssuesTool, handleCofounderGetIssues } from './get-issues.js';
 import { cofounderUpdateIssueTool, handleCofounderUpdateIssue } from './update-issue.js';
+import { cofounderMarkDoneTool, handleCofounderMarkDone } from './mark-done.js';
 
 export const tools = [
   cofounderCheckinTool,
@@ -52,6 +53,7 @@ export const tools = [
   cofounderReportIssueTool,
   cofounderGetIssuesTool,
   cofounderUpdateIssueTool,
+  cofounderMarkDoneTool,
 ];
 
 export async function handleToolCall(
@@ -110,6 +112,8 @@ export async function handleToolCall(
       return handleCofounderGetIssues(args, auth);
     case 'cofounder_update_issue':
       return handleCofounderUpdateIssue(args, auth);
+    case 'cofounder_mark_done':
+      return handleCofounderMarkDone(args, auth);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
