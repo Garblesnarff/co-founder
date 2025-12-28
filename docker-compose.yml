@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  cofounder:
+    build: .
+    ports:
+      - "8890:8890"
+    environment:
+      - PORT=8890
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - BASE_URL=https://cofounder.infiniterealms.tech
+    restart: unless-stopped
+    networks:
+      - cofounder-network
+
+networks:
+  cofounder-network:
+    driver: bridge
