@@ -12,6 +12,10 @@ export const cofounderCompleteTool = {
   inputSchema: {
     type: 'object' as const,
     properties: {
+      taskId: {
+        type: 'number',
+        description: 'ID of the task being completed (must match current task). Required to prevent accidental completions.',
+      },
       timeTakenMinutes: {
         type: 'number',
         description: 'How many minutes the task took (optional)',
@@ -21,11 +25,12 @@ export const cofounderCompleteTool = {
         description: 'Any notes about completion (optional)',
       },
     },
-    required: [],
+    required: ['taskId'],
   },
 };
 
 const inputSchema = z.object({
+  taskId: z.number(),
   timeTakenMinutes: z.number().optional(),
   notes: z.string().optional(),
 });
@@ -40,6 +45,14 @@ export async function handleCofounderComplete(args: unknown, auth: AuthContext) 
 
   if (!state?.currentTask) {
     throw new Error('No current task to complete');
+  }
+
+  // Validate taskId matches current task to prevent accidental completions
+  if (input.taskId !== state.currentTaskId) {
+    throw new Error(
+      `Task ID ${input.taskId} doesn't match current task ID ${state.currentTaskId} ` +
+      `(current task: "${state.currentTask}"). Use cofounder_checkin to see current task.`
+    );
   }
 
   // Log the completion
