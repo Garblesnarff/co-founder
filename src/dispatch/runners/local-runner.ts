@@ -1,4 +1,5 @@
 import { env } from '../../config/env.js';
+import { existsSync } from 'fs';
 
 /**
  * Run an AI agent locally on Hetzner
@@ -33,14 +34,21 @@ export async function runLocalAgent(
  * Claude Code's allowed-directories configuration.
  */
 async function runClaude(task: string, repoPath?: string, timeout: number = 300000): Promise<string> {
+  // Validate repoPath exists if provided
+  const validRepoPath = repoPath && existsSync(repoPath) ? repoPath : undefined;
+
+  if (repoPath && !validRepoPath) {
+    throw new Error(`Repository path does not exist: ${repoPath}`);
+  }
+
   // Build args - use --project flag to explicitly set the working directory
-  const args = repoPath
-    ? ['-p', task, '--print', '--project', repoPath]
+  const args = validRepoPath
+    ? ['-p', task, '--print', '--project', validRepoPath]
     : ['-p', task, '--print'];
 
   // Use Bun.spawn for subprocess execution
+  // Note: Don't change cwd as it can break PATH resolution for 'claude' binary
   const proc = Bun.spawn(['claude', ...args], {
-    cwd: repoPath || process.cwd(),
     stdout: 'pipe',
     stderr: 'pipe',
     env: {
