@@ -27,6 +27,24 @@ import { cofounderGetIssuesTool, handleCofounderGetIssues } from './get-issues.j
 import { cofounderUpdateIssueTool, handleCofounderUpdateIssue } from './update-issue.js';
 import { cofounderMarkDoneTool, handleCofounderMarkDone } from './mark-done.js';
 
+// New tools
+import { cofounderGetTaskTool, handleCofounderGetTask } from './get-task.js';
+import { cofounderSearchTasksTool, handleCofounderSearchTasks } from './search-tasks.js';
+import { cofounderBlockedTasksTool, handleCofounderBlockedTasks } from './blocked-tasks.js';
+import { cofounderLogLearningTool, handleCofounderLogLearning } from './log-learning.js';
+import { cofounderGetLearningsTool, handleCofounderGetLearnings } from './get-learnings.js';
+
+// Slack tools
+import { slackListChannelsTool, handleSlackListChannels } from './slack-channels.js';
+import { slackGetMessagesTool, slackSearchMessagesTool, handleSlackGetMessages, handleSlackSearchMessages } from './slack-messages.js';
+import { slackPostMessageTool, handleSlackPostMessage } from './slack-post.js';
+
+// Dispatch tools
+import { dispatchTaskTool, handleDispatchTask } from './dispatch-task.js';
+import { dispatchStatusTool, handleDispatchStatus } from './dispatch-status.js';
+import { dispatchListTool, handleDispatchList } from './dispatch-list.js';
+import { dispatchCancelTool, handleDispatchCancel } from './dispatch-cancel.js';
+
 export const tools = [
   cofounderCheckinTool,
   cofounderCompleteTool,
@@ -54,6 +72,22 @@ export const tools = [
   cofounderGetIssuesTool,
   cofounderUpdateIssueTool,
   cofounderMarkDoneTool,
+  // New tools
+  cofounderGetTaskTool,
+  cofounderSearchTasksTool,
+  cofounderBlockedTasksTool,
+  cofounderLogLearningTool,
+  cofounderGetLearningsTool,
+  // Slack tools
+  slackListChannelsTool,
+  slackGetMessagesTool,
+  slackSearchMessagesTool,
+  slackPostMessageTool,
+  // Dispatch tools
+  dispatchTaskTool,
+  dispatchStatusTool,
+  dispatchListTool,
+  dispatchCancelTool,
 ];
 
 export async function handleToolCall(
@@ -114,6 +148,35 @@ export async function handleToolCall(
       return handleCofounderUpdateIssue(args, auth);
     case 'cofounder_mark_done':
       return handleCofounderMarkDone(args, auth);
+    // New tools
+    case 'cofounder_get_task':
+      return handleCofounderGetTask(args, auth);
+    case 'cofounder_search_tasks':
+      return handleCofounderSearchTasks(args, auth);
+    case 'cofounder_blocked_tasks':
+      return handleCofounderBlockedTasks(args, auth);
+    case 'cofounder_log_learning':
+      return handleCofounderLogLearning(args, auth);
+    case 'cofounder_get_learnings':
+      return handleCofounderGetLearnings(args, auth);
+    // Slack tools
+    case 'slack_list_channels':
+      return handleSlackListChannels(args, auth);
+    case 'slack_get_messages':
+      return handleSlackGetMessages(args, auth);
+    case 'slack_search_messages':
+      return handleSlackSearchMessages(args, auth);
+    case 'slack_post_message':
+      return handleSlackPostMessage(args, auth);
+    // Dispatch tools
+    case 'dispatch_task':
+      return handleDispatchTask(args, auth);
+    case 'dispatch_status':
+      return handleDispatchStatus(args, auth);
+    case 'dispatch_list':
+      return handleDispatchList(args, auth);
+    case 'dispatch_cancel':
+      return handleDispatchCancel(args, auth);
     default:
       throw new Error(`Unknown tool: ${name}`);
   }

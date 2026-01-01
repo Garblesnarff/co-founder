@@ -3,10 +3,18 @@ import { env } from './config/env.js';
 import healthRouter from './routes/health.js';
 import mcpRouter from './routes/mcp.js';
 import oauthRouter from './routes/oauth.js';
+import { slackRouter, syncSlackChannels } from './slack/event-listener.js';
 
 const app = express();
 
-// Middleware
+// Raw body capture for Slack signature verification
+app.use('/slack', express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf.toString();
+  }
+}));
+
+// Middleware for other routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -26,6 +34,7 @@ app.use((req, res, next) => {
 app.use(healthRouter);
 app.use(oauthRouter);
 app.use(mcpRouter);
+app.use('/slack', slackRouter);
 
 // Root
 app.get('/', (_req, res) => {
@@ -57,8 +66,14 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 // Start server
 const port = parseInt(env.PORT, 10);
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`Co-Founder MCP server running on port ${port}`);
   console.log(`Environment: ${env.NODE_ENV}`);
   console.log(`Base URL: ${env.BASE_URL}`);
+
+  // Sync Slack channels on startup
+  if (env.SLACK_BOT_TOKEN) {
+    console.log('Slack integration enabled, syncing channels...');
+    await syncSlackChannels();
+  }
 });

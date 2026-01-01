@@ -11,6 +11,15 @@ const envSchema = z.object({
   WORKOS_CLIENT_ID: z.string(),
   // Role Configuration
   ADMIN_USER_IDS: z.string().default(''),
+  // Slack Configuration
+  SLACK_BOT_TOKEN: z.string().optional(),
+  SLACK_SIGNING_SECRET: z.string().optional(),
+  SLACK_CLIENT_ID: z.string().optional(),
+  SLACK_CLIENT_SECRET: z.string().optional(),
+  SLACK_APP_TOKEN: z.string().optional(), // For socket mode
+  // Dispatch Configuration
+  DISPATCH_MAX_DEPTH: z.string().default('5'),
+  DISPATCH_TIMEOUT_MS: z.string().default('300000'),
 });
 
 function loadEnv() {

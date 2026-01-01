@@ -34,6 +34,15 @@ export const cofounderAddTaskTool = {
         items: { type: 'number' },
         description: 'Array of task IDs that must complete before this task can start',
       },
+      dueDate: {
+        type: 'string',
+        description: 'Optional deadline (ISO date string, e.g., "2025-01-15")',
+      },
+      tags: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Tags for categorization: frontend, backend, quick-win, needs-rob, etc.',
+      },
     },
     required: ['task'],
   },
@@ -46,6 +55,8 @@ const inputSchema = z.object({
   estimatedMinutes: z.number().optional(),
   project: z.enum(['infinite_realms', 'infrastructure', 'sanctuary', 'other']).optional(),
   blockedBy: z.array(z.number()).optional().default([]),
+  dueDate: z.string().optional(),
+  tags: z.array(z.string()).optional().default([]),
 });
 
 export async function handleCofounderAddTask(args: unknown, auth: AuthContext) {
@@ -55,13 +66,18 @@ export async function handleCofounderAddTask(args: unknown, auth: AuthContext) {
 
   const input = inputSchema.parse(args);
 
+  // Parse dueDate if provided
+  const dueDate = input.dueDate ? new Date(input.dueDate) : null;
+
   const created = await addTask(
     input.task,
     input.priority,
     input.project || null,
     input.context || null,
     auth.userId || 'ai',
-    input.blockedBy
+    input.blockedBy,
+    dueDate,
+    input.tags
   );
 
   await incrementTasksAssigned();
@@ -75,6 +91,8 @@ export async function handleCofounderAddTask(args: unknown, auth: AuthContext) {
     added: input.task,
     priority: input.priority,
     blockedBy: input.blockedBy.length > 0 ? input.blockedBy : null,
+    dueDate: created.dueDate,
+    tags: input.tags.length > 0 ? input.tags : null,
     queuePosition: position,
     queueDepth: await getQueueDepth(),
   };

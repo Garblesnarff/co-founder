@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import type { AuthContext } from '../../middleware/auth.js';
-import { getTaskById, removeTask, getTasksUnblockedBy, getQueueDepth } from '../../services/queue-service.js';
+import { getTaskById, removeTask, getTasksUnblockedBy, getQueueDepth, getNextUnblockedTask, removeBlockerFromTasks } from '../../services/queue-service.js';
 import { completeTask } from '../../services/completion-service.js';
+import { getState, clearCurrentTask, assignTask } from '../../services/state-service.js';
 
 export const cofounderMarkDoneTool = {
   name: 'cofounder_mark_done',
@@ -60,6 +61,27 @@ export async function handleCofounderMarkDone(args: unknown, auth: AuthContext) 
   // Remove from queue
   await removeTask(input.taskId);
 
+  // Auto-unblock: Remove this task ID from all blockedBy arrays
+  await removeBlockerFromTasks(input.taskId);
+
+  // Check if the marked-done task was the current task - if so, update state
+  const state = await getState();
+  let newTask: { id: number; task: string; context: string | null } | null = null;
+  let wasCurrentTask = false;
+
+  if (state?.currentTaskId === input.taskId) {
+    wasCurrentTask = true;
+    // Get next unblocked task
+    const nextTask = await getNextUnblockedTask();
+
+    if (nextTask) {
+      await assignTask(nextTask.task, nextTask.context, nextTask.id);
+      newTask = nextTask;
+    } else {
+      await clearCurrentTask();
+    }
+  }
+
   const queueRemaining = await getQueueDepth();
 
   return {
@@ -72,8 +94,16 @@ export async function handleCofounderMarkDone(args: unknown, auth: AuthContext) 
     notes: input.notes,
     unblockedTasks: unblockedTasks.map(t => ({ id: t.id, task: t.task })),
     queueRemaining,
+    ...(wasCurrentTask && {
+      newTask: newTask?.task || null,
+      newTaskContext: newTask?.context || null,
+    }),
     message: unblockedTasks.length > 0
       ? `Task #${task.id} marked done. Unblocked ${unblockedTasks.length} task(s).`
-      : `Task #${task.id} marked done.`,
+      : wasCurrentTask && newTask
+        ? `Task #${task.id} marked done. Next: ${newTask.task}`
+        : wasCurrentTask
+          ? `Task #${task.id} marked done. Queue empty.`
+          : `Task #${task.id} marked done.`,
   };
 }

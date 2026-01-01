@@ -1,6 +1,6 @@
 import { db } from '../db/client.js';
 import { completedTasks, type CompletedTask, type NewCompletedTask } from '../db/schema/index.js';
-import { desc, gte, sql, eq, and } from 'drizzle-orm';
+import { desc, gte, sql, eq, and, or } from 'drizzle-orm';
 
 export async function completeTask(
   task: string,
@@ -92,4 +92,19 @@ export async function getStats(): Promise<{
     completedThisWeek: weekResult?.count || 0,
     completedToday: dayResult?.count || 0,
   };
+}
+
+export async function searchCompletedTasks(query: string, limit: number = 20): Promise<CompletedTask[]> {
+  const searchPattern = `%${query.toLowerCase()}%`;
+  return db
+    .select()
+    .from(completedTasks)
+    .where(
+      or(
+        sql`LOWER(${completedTasks.task}) LIKE ${searchPattern}`,
+        sql`LOWER(${completedTasks.context}) LIKE ${searchPattern}`
+      )
+    )
+    .orderBy(desc(completedTasks.completedAt))
+    .limit(limit);
 }

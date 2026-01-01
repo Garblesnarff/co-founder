@@ -67,6 +67,16 @@ export async function handleCofounderUpdateIssue(args: unknown, auth: AuthContex
 
   const updated = await updateIssue(input.issueId, updates);
 
+  // Detect warning conditions for already-resolved issues
+  let warning: string | undefined;
+  if (existing.status === 'resolved' && input.status === undefined) {
+    if (input.resolution !== undefined) {
+      warning = 'Status unchanged (already resolved). Resolution text was overwritten.';
+    } else if (input.priority !== undefined) {
+      warning = 'Issue already resolved. Priority updated on resolved issue.';
+    }
+  }
+
   return {
     issueId: input.issueId,
     before: {
@@ -82,5 +92,6 @@ export async function handleCofounderUpdateIssue(args: unknown, auth: AuthContex
     message: input.status === 'resolved'
       ? `Issue #${input.issueId} resolved.`
       : `Issue #${input.issueId} updated.`,
+    ...(warning && { warning }),
   };
 }

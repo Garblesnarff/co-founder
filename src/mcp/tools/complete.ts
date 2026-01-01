@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { AuthContext } from '../../middleware/auth.js';
 import { getState, clearCurrentTask, assignTask, incrementStreak } from '../../services/state-service.js';
-import { removeTask, getQueueDepth, getNextUnblockedTask, getTasksUnblockedBy } from '../../services/queue-service.js';
+import { removeTask, getQueueDepth, getNextUnblockedTask, getTasksUnblockedBy, removeBlockerFromTasks } from '../../services/queue-service.js';
 import { completeTask } from '../../services/completion-service.js';
 import { incrementTasksCompleted } from '../../services/daily-log-service.js';
 import { incrementSessionTasks, getActiveSession } from '../../services/session-service.js';
@@ -70,6 +70,8 @@ export async function handleCofounderComplete(args: unknown, auth: AuthContext) 
   // Remove from queue if it was queued
   if (completedTaskId) {
     await removeTask(completedTaskId);
+    // Auto-unblock: Remove this task ID from all blockedBy arrays
+    await removeBlockerFromTasks(completedTaskId);
   }
 
   // Update daily log

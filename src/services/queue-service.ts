@@ -1,7 +1,7 @@
 import { db } from '../db/client.js';
 import { taskQueue, type TaskQueueItem, type NewTaskQueueItem } from '../db/schema/index.js';
 import { founderState } from '../db/schema/index.js';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, like, or, sql, and, isNotNull } from 'drizzle-orm';
 
 export async function getQueue(): Promise<TaskQueueItem[]> {
   return db
@@ -34,7 +34,9 @@ export async function addTask(
   project: string | null,
   context: string | null,
   addedBy: string | null,
-  blockedBy: number[] = []
+  blockedBy: number[] = [],
+  dueDate: Date | null = null,
+  tags: string[] = []
 ): Promise<TaskQueueItem> {
   const [created] = await db
     .insert(taskQueue)
@@ -45,6 +47,8 @@ export async function addTask(
       context,
       addedBy,
       blockedBy,
+      dueDate,
+      tags,
     })
     .returning();
   return created;
@@ -74,6 +78,8 @@ export async function updateTask(id: number, updates: {
   estimatedMinutes?: number | null;
   project?: string | null;
   blockedBy?: number[];
+  dueDate?: Date | null;
+  tags?: string[];
 }): Promise<TaskQueueItem | null> {
   const [updated] = await db
     .update(taskQueue)
@@ -150,4 +156,114 @@ export async function getNextUnblockedTask(): Promise<TaskQueueItem | null> {
     if (!blocked) return task;
   }
   return null;
+}
+
+// Remove a completed task ID from all blockedBy arrays (auto-unblock)
+export async function removeBlockerFromTasks(completedTaskId: number): Promise<number> {
+  // Find all tasks that have this ID in their blockedBy array
+  const tasksToUpdate = await db
+    .select()
+    .from(taskQueue)
+    .where(sql`${taskQueue.blockedBy} @> ${JSON.stringify([completedTaskId])}::jsonb`);
+
+  if (tasksToUpdate.length === 0) return 0;
+
+  // Update each task to remove the completed ID from blockedBy
+  let updatedCount = 0;
+  for (const task of tasksToUpdate) {
+    const currentBlockers = task.blockedBy || [];
+    const newBlockers = currentBlockers.filter(id => id !== completedTaskId);
+    await db
+      .update(taskQueue)
+      .set({ blockedBy: newBlockers })
+      .where(eq(taskQueue.id, task.id));
+    updatedCount++;
+  }
+
+  return updatedCount;
+}
+
+// Search tasks by keyword in task description and context
+export async function searchTasks(query: string, limit: number = 20): Promise<TaskQueueItem[]> {
+  const searchPattern = `%${query.toLowerCase()}%`;
+  return db
+    .select()
+    .from(taskQueue)
+    .where(
+      or(
+        sql`LOWER(${taskQueue.task}) LIKE ${searchPattern}`,
+        sql`LOWER(${taskQueue.context}) LIKE ${searchPattern}`
+      )
+    )
+    .orderBy(desc(taskQueue.priority), taskQueue.addedAt)
+    .limit(limit);
+}
+
+// Get all blocked tasks with their blocker details
+export async function getBlockedTasks(): Promise<Array<TaskQueueItem & { blockerDetails: Array<{ id: number; task: string; exists: boolean }> }>> {
+  const queue = await getQueue();
+  const blockedTasks: Array<TaskQueueItem & { blockerDetails: Array<{ id: number; task: string; exists: boolean }> }> = [];
+
+  // Get current task ID
+  const [state] = await db.select().from(founderState).where(eq(founderState.id, 1)).limit(1);
+  const currentTaskId = state?.currentTaskId;
+
+  for (const task of queue) {
+    const blockedBy = task.blockedBy || [];
+    if (blockedBy.length === 0) continue;
+
+    const blockerDetails: Array<{ id: number; task: string; exists: boolean }> = [];
+    let isBlocked = false;
+
+    for (const blockerId of blockedBy) {
+      const blocker = await getTaskById(blockerId);
+      const isCurrentTask = currentTaskId === blockerId;
+      const exists = blocker !== null || isCurrentTask;
+
+      blockerDetails.push({
+        id: blockerId,
+        task: blocker?.task || (isCurrentTask ? state?.currentTask || 'In progress' : 'Completed/Removed'),
+        exists,
+      });
+
+      if (exists) isBlocked = true;
+    }
+
+    if (isBlocked) {
+      blockedTasks.push({ ...task, blockerDetails });
+    }
+  }
+
+  return blockedTasks;
+}
+
+// Get tasks with upcoming or overdue deadlines
+export async function getTasksWithDeadlines(includeOverdue: boolean = true): Promise<TaskQueueItem[]> {
+  const now = new Date();
+
+  if (includeOverdue) {
+    return db
+      .select()
+      .from(taskQueue)
+      .where(isNotNull(taskQueue.dueDate))
+      .orderBy(taskQueue.dueDate);
+  }
+
+  return db
+    .select()
+    .from(taskQueue)
+    .where(and(
+      isNotNull(taskQueue.dueDate),
+      sql`${taskQueue.dueDate} >= ${now}`
+    ))
+    .orderBy(taskQueue.dueDate);
+}
+
+// Get tasks by tag
+export async function getTasksByTag(tag: string): Promise<TaskQueueItem[]> {
+  return db
+    .select()
+    .from(taskQueue)
+    .where(sql`${taskQueue.tags} @> ${JSON.stringify([tag])}::jsonb`)
+    .orderBy(desc(taskQueue.priority), taskQueue.addedAt);
 }

@@ -33,6 +33,15 @@ export const cofounderUpdateTaskTool = {
         items: { type: 'number' },
         description: 'Updated list of task IDs that must complete first',
       },
+      dueDate: {
+        type: 'string',
+        description: 'Updated deadline (ISO date string). Use null to clear.',
+      },
+      tags: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Updated tags for categorization',
+      },
     },
     required: ['taskId'],
   },
@@ -45,6 +54,8 @@ const inputSchema = z.object({
   estimatedMinutes: z.number().nullable().optional(),
   project: z.string().nullable().optional(),
   blockedBy: z.array(z.number()).optional(),
+  dueDate: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export async function handleCofounderUpdateTask(args: unknown, auth: AuthContext) {
@@ -67,6 +78,8 @@ export async function handleCofounderUpdateTask(args: unknown, auth: AuthContext
     estimatedMinutes?: number | null;
     project?: string | null;
     blockedBy?: number[];
+    dueDate?: Date | null;
+    tags?: string[];
   } = {};
 
   if (input.task !== undefined) updates.task = input.task;
@@ -74,6 +87,10 @@ export async function handleCofounderUpdateTask(args: unknown, auth: AuthContext
   if (input.estimatedMinutes !== undefined) updates.estimatedMinutes = input.estimatedMinutes;
   if (input.project !== undefined) updates.project = input.project;
   if (input.blockedBy !== undefined) updates.blockedBy = input.blockedBy;
+  if (input.dueDate !== undefined) {
+    updates.dueDate = input.dueDate ? new Date(input.dueDate) : null;
+  }
+  if (input.tags !== undefined) updates.tags = input.tags;
 
   // Require at least one update
   if (Object.keys(updates).length === 0) {
@@ -90,6 +107,8 @@ export async function handleCofounderUpdateTask(args: unknown, auth: AuthContext
       estimatedMinutes: existing.estimatedMinutes,
       project: existing.project,
       blockedBy: existing.blockedBy,
+      dueDate: existing.dueDate,
+      tags: existing.tags,
     },
     after: {
       task: updated?.task,
@@ -97,6 +116,8 @@ export async function handleCofounderUpdateTask(args: unknown, auth: AuthContext
       estimatedMinutes: updated?.estimatedMinutes,
       project: updated?.project,
       blockedBy: updated?.blockedBy,
+      dueDate: updated?.dueDate,
+      tags: updated?.tags,
     },
   };
 }

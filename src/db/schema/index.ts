@@ -9,3 +9,6 @@ export * from './work-sessions';
 export * from './project-context';
 export * from './decisions';
 export * from './mcp-issues';
+export * from './slack-events';
+export * from './dispatch-jobs';
+export * from './learnings';
