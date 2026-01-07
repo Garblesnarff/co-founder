@@ -29,7 +29,7 @@ const inputSchema = z.object({
 // Generate MCP tool definition from Zod schema
 export const cofounderAddTaskTool = createMcpToolDefinition(
   'cofounder_add_task',
-  'Add a new task to the queue. AI can add tasks for Rob to execute.',
+  `Add ONE task to queue. For multiple tasks, use cofounder_add_tasks (plural) to batch them in a single call.`,
   inputSchema
 );
 

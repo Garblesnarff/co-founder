@@ -29,9 +29,12 @@ export async function runLocalAgent(
 
 /**
  * Run Claude Code CLI
- * Uses: claude -p "task" --print
- * Note: Uses --project flag to set working directory since cwd alone doesn't override
- * Claude Code's allowed-directories configuration.
+ * Uses: claude -p "task" --print --dangerously-skip-permissions
+ *
+ * Flags used:
+ * - --print: Non-interactive output mode
+ * - --dangerously-skip-permissions: Skip all permission prompts (prevents planning mode blocking)
+ * - --add-dir: Allow access to additional directories
  */
 async function runClaude(task: string, repoPath?: string, timeout: number = 300000): Promise<string> {
   // Validate repoPath exists if provided
@@ -41,10 +44,13 @@ async function runClaude(task: string, repoPath?: string, timeout: number = 3000
     throw new Error(`Repository path does not exist: ${repoPath}`);
   }
 
-  // Build args - use --project flag to explicitly set the working directory
+  // Build args:
+  // - --dangerously-skip-permissions: Prevents Claude from entering planning mode or asking for confirmations
+  // - --add-dir: Allows access to the specified repo directory
+  const baseArgs = ['-p', task, '--print', '--dangerously-skip-permissions'];
   const args = validRepoPath
-    ? ['-p', task, '--print', '--project', validRepoPath]
-    : ['-p', task, '--print'];
+    ? [...baseArgs, '--add-dir', validRepoPath]
+    : baseArgs;
 
   // Use Bun.spawn for subprocess execution
   // Note: Don't change cwd as it can break PATH resolution for 'claude' binary

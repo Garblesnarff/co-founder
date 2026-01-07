@@ -15,7 +15,9 @@ const inputSchema = z.object({});
 // Generate MCP tool definition from Zod schema
 export const cofounderCheckinTool = createMcpToolDefinition(
   'cofounder_checkin',
-  'Check in at the start of any conversation about work. Returns current goal, task, streak, and status.',
+  `Start here. Returns current task, streak, session status, and queue depth. Call once at session start.
+
+For a full session start with task claiming, use cofounder_start_work instead.`,
   inputSchema
 );
 
@@ -49,33 +51,6 @@ export const handleCofounderCheckin = createToolHandler(
       ? Math.round((Date.now() - new Date(activeSession.startedAt).getTime()) / (1000 * 60))
       : null;
 
-    // Determine contextual guidance
-    let suggestedAction: string;
-    let hint: string;
-
-    if (!state.currentTask && queueDepth > 0) {
-      suggestedAction = 'cofounder_claim_task';
-      hint = 'No active task. Call cofounder_claim_task to start working.';
-    } else if (!state.currentTask && queueDepth === 0) {
-      suggestedAction = 'cofounder_add_task';
-      hint = 'Queue empty. Add tasks or update_progress if work was done outside the system.';
-    } else if (state.currentTask && activeBlockers.length > 0) {
-      suggestedAction = 'cofounder_get_task_notes';
-      hint = 'This task has active blockers. Check notes before continuing.';
-    } else if (state.currentTask && sessionMinutes !== null && sessionMinutes > 90) {
-      suggestedAction = 'cofounder_end_session';
-      hint = `Session at ${sessionMinutes} minutes. Consider a break or end_session.`;
-    } else if (state.currentTask && !activeSession) {
-      suggestedAction = 'cofounder_start_session';
-      hint = 'Task claimed but no session. Call cofounder_start_session to track this work block.';
-    } else if (state.currentTask && taskNoteCount > 0) {
-      suggestedAction = 'cofounder_get_task_notes';
-      hint = `Task ${state.currentTaskId} has ${taskNoteCount} notes from previous work. Call cofounder_get_task_notes to see history.`;
-    } else {
-      suggestedAction = 'cofounder_add_task_note';
-      hint = `Working on: ${state.currentTask}. Log progress with cofounder_add_task_note.`;
-    }
-
     return {
       goal: state.goal,
       goalMetric: state.goalMetric,
@@ -88,10 +63,19 @@ export const handleCofounderCheckin = createToolHandler(
       status: state.status,
       queueDepth,
       blockers: activeBlockers.map(b => b.blocker),
-      sessionActive: !!activeSession,
-      sessionMinutes,
-      suggestedAction,
-      hint,
+
+      // Session details (saves needing to call get_session)
+      session: activeSession ? {
+        id: activeSession.id,
+        minutesElapsed: sessionMinutes,
+        plannedMinutes: activeSession.plannedDurationMinutes,
+        remainingMinutes: activeSession.plannedDurationMinutes && sessionMinutes
+          ? Math.max(0, activeSession.plannedDurationMinutes - sessionMinutes)
+          : null,
+      } : null,
+
+      // Task notes count (indicates if history should be checked)
+      taskNoteCount,
     };
   }
 );

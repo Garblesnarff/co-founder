@@ -1,0 +1,1 @@
+ALTER TABLE "project_context" ADD COLUMN "moonshot" text;

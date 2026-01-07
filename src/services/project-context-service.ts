@@ -18,6 +18,7 @@ export async function updateProjectContext(
     currentState?: string | null;
     keyFiles?: string | null;
     techStack?: string | null;
+    moonshot?: string | null;
   }
 ): Promise<ProjectContext> {
   const existing = await getProjectContext(project);

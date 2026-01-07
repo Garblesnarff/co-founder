@@ -76,6 +76,30 @@ class SlackClient {
       name: emoji,
     });
   }
+
+  async createChannel(name: string, isPrivate: boolean = false) {
+    const result = await this.getClient().conversations.create({
+      name: name.toLowerCase().replace(/\s+/g, '-'),
+      is_private: isPrivate,
+    });
+    return result.channel;
+  }
+
+  async inviteToChannel(channel: string, users: string[]) {
+    const result = await this.getClient().conversations.invite({
+      channel,
+      users: users.join(','),
+    });
+    return result.channel;
+  }
+
+  async setChannelTopic(channel: string, topic: string) {
+    const result = await this.getClient().conversations.setTopic({
+      channel,
+      topic,
+    });
+    return result.channel;
+  }
 }
 
 export const slackClient = new SlackClient();

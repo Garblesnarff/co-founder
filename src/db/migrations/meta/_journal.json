@@ -43,6 +43,34 @@
       "when": 1767231421558,
       "tag": "0005_loving_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1767323297329,
+      "tag": "0006_brave_speed",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1767323510398,
+      "tag": "0007_majestic_dakota_north",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1767758856885,
+      "tag": "0008_rich_morlocks",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1767762392518,
+      "tag": "0009_first_diamondback",
+      "breakpoints": true
     }
   ]
 }

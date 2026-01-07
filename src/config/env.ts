@@ -20,6 +20,9 @@ const envSchema = z.object({
   // Dispatch Configuration
   DISPATCH_MAX_DEPTH: z.string().default('5'),
   DISPATCH_TIMEOUT_MS: z.string().default('300000'),
+  // Notion Integration (optional)
+  NOTION_API_KEY: z.string().optional(),
+  NOTION_DATABASE_ID: z.string().optional(),
 });
 
 function loadEnv() {

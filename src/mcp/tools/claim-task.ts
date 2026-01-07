@@ -14,7 +14,9 @@ const inputSchema = z.object({
 // Generate MCP tool definition from Zod schema
 export const cofounderClaimTaskTool = createMcpToolDefinition(
   'cofounder_claim_task',
-  'Claim a task to work on. If no taskId provided, claims the highest priority task.',
+  `Claim a task to work on. If no taskId provided, claims highest priority task.
+
+For full session start (claim + start session + get notes), use cofounder_start_work instead.`,
   inputSchema
 );
 

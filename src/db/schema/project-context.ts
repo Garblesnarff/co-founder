@@ -7,6 +7,7 @@ export const projectContext = pgTable('project_context', {
   currentState: text('current_state'), // Where are we now
   keyFiles: text('key_files'), // Important file paths
   techStack: text('tech_stack'), // Technologies used
+  moonshot: text('moonshot'), // Long-term vision, multi-phase goals
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

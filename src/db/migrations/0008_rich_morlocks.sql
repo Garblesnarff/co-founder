@@ -1,0 +1,1 @@
+ALTER TABLE "task_queue" ADD COLUMN "notion_page_id" text;

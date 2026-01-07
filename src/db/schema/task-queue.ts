@@ -12,6 +12,7 @@ export const taskQueue = pgTable('task_queue', {
   blockedBy: jsonb('blocked_by').$type<number[]>().default([]), // IDs of tasks that must complete first
   dueDate: timestamp('due_date', { withTimezone: true }), // Optional deadline for the task
   tags: jsonb('tags').$type<string[]>().default([]), // Flexible labels: frontend, backend, quick-win, etc.
+  notionPageId: text('notion_page_id'), // Notion page ID for sync
 }, (table) => [
   index('idx_task_queue_priority').on(table.priority),
   index('idx_task_queue_due_date').on(table.dueDate),

@@ -39,6 +39,11 @@ import { cofounderAddToolTool, handleCofounderAddTool } from './add-tool.js';
 import { cofounderListToolsTool, handleCofounderListTools } from './list-tools.js';
 import { cofounderGetToolTool, handleCofounderGetTool } from './get-tool.js';
 
+// Compound tools (token optimization)
+import { cofounderStartWorkTool, handleCofounderStartWork } from './start-work.js';
+import { cofounderSessionSummaryTool, handleCofounderSessionSummary } from './session-summary.js';
+import { cofounderAddTasksTool, handleCofounderAddTasks } from './add-tasks.js';
+
 // Slack tools
 import { slackListChannelsTool, handleSlackListChannels } from './slack-channels.js';
 import { slackGetMessagesTool, slackSearchMessagesTool, handleSlackGetMessages, handleSlackSearchMessages } from './slack-messages.js';
@@ -88,6 +93,10 @@ export const tools = [
   cofounderAddToolTool,
   cofounderListToolsTool,
   cofounderGetToolTool,
+  // Compound tools (token optimization)
+  cofounderStartWorkTool,
+  cofounderSessionSummaryTool,
+  cofounderAddTasksTool,
   // Slack tools
   slackListChannelsTool,
   slackGetMessagesTool,
@@ -177,6 +186,13 @@ export async function handleToolCall(
       return handleCofounderListTools(args, auth);
     case 'cofounder_get_tool':
       return handleCofounderGetTool(args, auth);
+    // Compound tools (token optimization)
+    case 'cofounder_start_work':
+      return handleCofounderStartWork(args, auth);
+    case 'cofounder_session_summary':
+      return handleCofounderSessionSummary(args, auth);
+    case 'cofounder_add_tasks':
+      return handleCofounderAddTasks(args, auth);
     // Slack tools
     case 'slack_list_channels':
       return handleSlackListChannels(args, auth);
