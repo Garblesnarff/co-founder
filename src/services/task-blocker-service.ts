@@ -1,101 +1,8 @@
 import { db } from '../db/client.js';
-import { taskQueue, type TaskQueueItem, type NewTaskQueueItem } from '../db/schema/index.js';
+import { taskQueue, type TaskQueueItem } from '../db/schema/index.js';
 import { founderState } from '../db/schema/index.js';
-import { eq, desc, like, or, sql, and, isNotNull } from 'drizzle-orm';
-
-export async function getQueue(): Promise<TaskQueueItem[]> {
-  return db
-    .select()
-    .from(taskQueue)
-    .orderBy(desc(taskQueue.priority), taskQueue.addedAt);
-}
-
-export async function getNextTask(): Promise<TaskQueueItem | null> {
-  const [next] = await db
-    .select()
-    .from(taskQueue)
-    .orderBy(desc(taskQueue.priority), taskQueue.addedAt)
-    .limit(1);
-  return next || null;
-}
-
-export async function getTaskById(id: number): Promise<TaskQueueItem | null> {
-  const [task] = await db
-    .select()
-    .from(taskQueue)
-    .where(eq(taskQueue.id, id))
-    .limit(1);
-  return task || null;
-}
-
-export async function addTask(
-  task: string,
-  priority: number,
-  project: string | null,
-  context: string | null,
-  addedBy: string | null,
-  blockedBy: number[] = [],
-  dueDate: Date | null = null,
-  tags: string[] = []
-): Promise<TaskQueueItem> {
-  const [created] = await db
-    .insert(taskQueue)
-    .values({
-      task,
-      priority,
-      project,
-      context,
-      addedBy,
-      blockedBy,
-      dueDate,
-      tags,
-    })
-    .returning();
-  return created;
-}
-
-export async function removeTask(id: number): Promise<void> {
-  await db.delete(taskQueue).where(eq(taskQueue.id, id));
-}
-
-export async function reprioritize(id: number, newPriority: number): Promise<TaskQueueItem | null> {
-  const [updated] = await db
-    .update(taskQueue)
-    .set({ priority: newPriority })
-    .where(eq(taskQueue.id, id))
-    .returning();
-  return updated || null;
-}
-
-export async function getQueueDepth(): Promise<number> {
-  const queue = await getQueue();
-  return queue.length;
-}
-
-export async function updateTask(id: number, updates: {
-  task?: string;
-  context?: string | null;
-  estimatedMinutes?: number | null;
-  project?: string | null;
-  blockedBy?: number[];
-  dueDate?: Date | null;
-  tags?: string[];
-}): Promise<TaskQueueItem | null> {
-  const [updated] = await db
-    .update(taskQueue)
-    .set(updates)
-    .where(eq(taskQueue.id, id))
-    .returning();
-  return updated || null;
-}
-
-export async function deleteTask(id: number): Promise<TaskQueueItem | null> {
-  const [deleted] = await db
-    .delete(taskQueue)
-    .where(eq(taskQueue.id, id))
-    .returning();
-  return deleted || null;
-}
+import { eq, sql } from 'drizzle-orm';
+import { getQueue, getTaskById } from './queue-crud-service.js';
 
 // Check if a task is blocked (any of its blockedBy tasks still exist in queue OR are in progress)
 export async function isTaskBlocked(task: TaskQueueItem): Promise<boolean> {
@@ -183,22 +90,6 @@ export async function removeBlockerFromTasks(completedTaskId: number): Promise<n
   return updatedCount;
 }
 
-// Search tasks by keyword in task description and context
-export async function searchTasks(query: string, limit: number = 20): Promise<TaskQueueItem[]> {
-  const searchPattern = `%${query.toLowerCase()}%`;
-  return db
-    .select()
-    .from(taskQueue)
-    .where(
-      or(
-        sql`LOWER(${taskQueue.task}) LIKE ${searchPattern}`,
-        sql`LOWER(${taskQueue.context}) LIKE ${searchPattern}`
-      )
-    )
-    .orderBy(desc(taskQueue.priority), taskQueue.addedAt)
-    .limit(limit);
-}
-
 // Get all blocked tasks with their blocker details
 export async function getBlockedTasks(): Promise<Array<TaskQueueItem & { blockerDetails: Array<{ id: number; task: string; exists: boolean }> }>> {
   const queue = await getQueue();
@@ -235,35 +126,4 @@ export async function getBlockedTasks(): Promise<Array<TaskQueueItem & { blocker
   }
 
   return blockedTasks;
-}
-
-// Get tasks with upcoming or overdue deadlines
-export async function getTasksWithDeadlines(includeOverdue: boolean = true): Promise<TaskQueueItem[]> {
-  const now = new Date();
-
-  if (includeOverdue) {
-    return db
-      .select()
-      .from(taskQueue)
-      .where(isNotNull(taskQueue.dueDate))
-      .orderBy(taskQueue.dueDate);
-  }
-
-  return db
-    .select()
-    .from(taskQueue)
-    .where(and(
-      isNotNull(taskQueue.dueDate),
-      sql`${taskQueue.dueDate} >= ${now}`
-    ))
-    .orderBy(taskQueue.dueDate);
-}
-
-// Get tasks by tag
-export async function getTasksByTag(tag: string): Promise<TaskQueueItem[]> {
-  return db
-    .select()
-    .from(taskQueue)
-    .where(sql`${taskQueue.tags} @> ${JSON.stringify([tag])}::jsonb`)
-    .orderBy(desc(taskQueue.priority), taskQueue.addedAt);
 }

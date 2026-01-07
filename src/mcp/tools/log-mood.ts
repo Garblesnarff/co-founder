@@ -1,42 +1,32 @@
 import { z } from 'zod';
-import type { AuthContext } from '../../middleware/auth.js';
 import { logMood } from '../../services/daily-log-service.js';
+import { createToolHandler } from '../../lib/tool-handler.js';
+import { createMcpToolDefinition } from '../../lib/zod-to-mcp.js';
+import { nonEmptyStringSchema, optionalStringSchema } from '../../schemas/common.js';
 
-export const cofounderLogMoodTool = {
-  name: 'cofounder_log_mood',
-  description: 'Log how Rob is feeling. Helps AI calibrate task difficulty and messaging.',
-  inputSchema: {
-    type: 'object' as const,
-    properties: {
-      mood: {
-        type: 'string',
-        description: 'How you\'re feeling (free text)',
-      },
-      notes: {
-        type: 'string',
-        description: 'Additional context (optional)',
-      },
-    },
-    required: ['mood'],
-  },
-};
-
+// Define schema once with descriptions for MCP
 const inputSchema = z.object({
-  mood: z.string(),
-  notes: z.string().optional(),
+  mood: nonEmptyStringSchema.describe('How you\'re feeling (free text)'),
+  notes: optionalStringSchema.describe('Additional context (optional)'),
 });
 
-export async function handleCofounderLogMood(args: unknown, auth: AuthContext) {
-  if (auth.isAnonymous) {
-    throw new Error('Authentication required');
+// Generate MCP tool definition from Zod schema
+export const cofounderLogMoodTool = createMcpToolDefinition(
+  'cofounder_log_mood',
+  'Log how Rob is feeling. Helps AI calibrate task difficulty and messaging.',
+  inputSchema
+);
+
+// Handler with automatic auth check and schema validation
+export const handleCofounderLogMood = createToolHandler(
+  inputSchema,
+  async (input) => {
+    await logMood(input.mood, input.notes || null);
+
+    return {
+      logged: true,
+      mood: input.mood,
+      message: 'Mood logged. Take care of yourself.',
+    };
   }
-
-  const input = inputSchema.parse(args);
-  await logMood(input.mood, input.notes || null);
-
-  return {
-    logged: true,
-    mood: input.mood,
-    message: 'Mood logged. Take care of yourself.',
-  };
-}
+);

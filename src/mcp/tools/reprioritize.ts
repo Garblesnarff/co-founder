@@ -1,60 +1,46 @@
 import { z } from 'zod';
-import type { AuthContext } from '../../middleware/auth.js';
-import { reprioritize, getTaskById, getQueue } from '../../services/queue-service.js';
+import { reprioritize, getTaskById, getQueue } from '../../services/queue-crud-service.js';
+import { createToolHandler } from '../../lib/tool-handler.js';
+import { createMcpToolDefinition } from '../../lib/zod-to-mcp.js';
+import { taskIdSchema, requiredPrioritySchema, optionalStringSchema } from '../../schemas/common.js';
+import { NotFoundError } from '../../lib/errors.js';
 
-export const cofounderReprioritizeTool = {
-  name: 'cofounder_reprioritize',
-  description: 'Change the priority of a task in the queue.',
-  inputSchema: {
-    type: 'object' as const,
-    properties: {
-      taskId: {
-        type: 'number',
-        description: 'ID of the task to reprioritize',
-      },
-      newPriority: {
-        type: 'number',
-        description: 'New priority (0-10)',
-      },
-      reason: {
-        type: 'string',
-        description: 'Why the priority is changing (optional)',
-      },
-    },
-    required: ['taskId', 'newPriority'],
-  },
-};
-
+// Define schema once - used for both MCP registration and runtime validation
 const inputSchema = z.object({
-  taskId: z.number(),
-  newPriority: z.number().min(0).max(10),
-  reason: z.string().optional(),
+  taskId: taskIdSchema.describe('ID of the task to reprioritize'),
+  newPriority: requiredPrioritySchema.describe('New priority (0-10)'),
+  reason: optionalStringSchema.describe('Why the priority is changing (optional)'),
 });
 
-export async function handleCofounderReprioritize(args: unknown, auth: AuthContext) {
-  if (auth.isAnonymous) {
-    throw new Error('Authentication required');
+// Generate MCP tool definition from Zod schema
+export const cofounderReprioritizeTool = createMcpToolDefinition(
+  'cofounder_reprioritize',
+  'Change the priority of a task in the queue.',
+  inputSchema
+);
+
+// Handler with automatic auth check and schema validation
+export const handleCofounderReprioritize = createToolHandler(
+  inputSchema,
+  async (input) => {
+    const task = await getTaskById(input.taskId);
+    if (!task) {
+      throw new NotFoundError('Task', input.taskId);
+    }
+
+    const oldPriority = task.priority;
+    await reprioritize(input.taskId, input.newPriority);
+
+    // Get new position
+    const queue = await getQueue();
+    const newPosition = queue.findIndex(t => t.id === input.taskId) + 1;
+
+    return {
+      task: task.task,
+      oldPriority,
+      newPriority: input.newPriority,
+      reason: input.reason || null,
+      newQueuePosition: newPosition,
+    };
   }
-
-  const input = inputSchema.parse(args);
-
-  const task = await getTaskById(input.taskId);
-  if (!task) {
-    throw new Error(`Task ${input.taskId} not found`);
-  }
-
-  const oldPriority = task.priority;
-  const updated = await reprioritize(input.taskId, input.newPriority);
-
-  // Get new position
-  const queue = await getQueue();
-  const newPosition = queue.findIndex(t => t.id === input.taskId) + 1;
-
-  return {
-    task: task.task,
-    oldPriority,
-    newPriority: input.newPriority,
-    reason: input.reason || null,
-    newQueuePosition: newPosition,
-  };
-}
+);

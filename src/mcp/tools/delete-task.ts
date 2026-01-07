@@ -1,55 +1,45 @@
 import { z } from 'zod';
-import type { AuthContext } from '../../middleware/auth.js';
-import { getTaskById, deleteTask, getQueueDepth } from '../../services/queue-service.js';
+import { getTaskById, deleteTask, getQueueDepth } from '../../services/queue-crud-service.js';
+import { createToolHandler } from '../../lib/tool-handler.js';
+import { createMcpToolDefinition } from '../../lib/zod-to-mcp.js';
+import { taskIdSchema, optionalStringSchema } from '../../schemas/common.js';
+import { NotFoundError } from '../../lib/errors.js';
 
-export const cofounderDeleteTaskTool = {
-  name: 'cofounder_delete_task',
-  description: 'Delete a task from the queue (e.g., if it became obsolete).',
-  inputSchema: {
-    type: 'object' as const,
-    properties: {
-      taskId: {
-        type: 'number',
-        description: 'ID of the task to delete',
-      },
-      reason: {
-        type: 'string',
-        description: 'Why the task is being deleted (optional, for logging)',
-      },
-    },
-    required: ['taskId'],
-  },
-};
-
+// Define schema once - used for both MCP registration and runtime validation
 const inputSchema = z.object({
-  taskId: z.number(),
-  reason: z.string().optional(),
+  taskId: taskIdSchema.describe('ID of the task to delete'),
+  reason: optionalStringSchema.describe('Why the task is being deleted (optional, for logging)'),
 });
 
-export async function handleCofounderDeleteTask(args: unknown, auth: AuthContext) {
-  if (auth.isAnonymous) {
-    throw new Error('Authentication required');
+// Generate MCP tool definition from Zod schema
+export const cofounderDeleteTaskTool = createMcpToolDefinition(
+  'cofounder_delete_task',
+  'Delete a task from the queue (e.g., if it became obsolete).',
+  inputSchema
+);
+
+// Handler with automatic auth check and schema validation
+export const handleCofounderDeleteTask = createToolHandler(
+  inputSchema,
+  async (input) => {
+    // Verify task exists
+    const existing = await getTaskById(input.taskId);
+    if (!existing) {
+      throw new NotFoundError('Task', input.taskId);
+    }
+
+    const deleted = await deleteTask(input.taskId);
+    const queueDepth = await getQueueDepth();
+
+    return {
+      deleted: {
+        id: deleted?.id,
+        task: deleted?.task,
+        context: deleted?.context,
+        priority: deleted?.priority,
+      },
+      reason: input.reason || null,
+      queueDepth,
+    };
   }
-
-  const input = inputSchema.parse(args);
-
-  // Verify task exists
-  const existing = await getTaskById(input.taskId);
-  if (!existing) {
-    throw new Error(`Task ${input.taskId} not found`);
-  }
-
-  const deleted = await deleteTask(input.taskId);
-  const queueDepth = await getQueueDepth();
-
-  return {
-    deleted: {
-      id: deleted?.id,
-      task: deleted?.task,
-      context: deleted?.context,
-      priority: deleted?.priority,
-    },
-    reason: input.reason || null,
-    queueDepth,
-  };
-}
+);

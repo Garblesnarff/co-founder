@@ -34,10 +34,16 @@ import { cofounderBlockedTasksTool, handleCofounderBlockedTasks } from './blocke
 import { cofounderLogLearningTool, handleCofounderLogLearning } from './log-learning.js';
 import { cofounderGetLearningsTool, handleCofounderGetLearnings } from './get-learnings.js';
 
+// Toolchain tools
+import { cofounderAddToolTool, handleCofounderAddTool } from './add-tool.js';
+import { cofounderListToolsTool, handleCofounderListTools } from './list-tools.js';
+import { cofounderGetToolTool, handleCofounderGetTool } from './get-tool.js';
+
 // Slack tools
 import { slackListChannelsTool, handleSlackListChannels } from './slack-channels.js';
 import { slackGetMessagesTool, slackSearchMessagesTool, handleSlackGetMessages, handleSlackSearchMessages } from './slack-messages.js';
 import { slackPostMessageTool, handleSlackPostMessage } from './slack-post.js';
+import { slackCreateChannelTool, handleSlackCreateChannel } from './slack-create-channel.js';
 
 // Dispatch tools
 import { dispatchTaskTool, handleDispatchTask } from './dispatch-task.js';
@@ -78,11 +84,16 @@ export const tools = [
   cofounderBlockedTasksTool,
   cofounderLogLearningTool,
   cofounderGetLearningsTool,
+  // Toolchain tools
+  cofounderAddToolTool,
+  cofounderListToolsTool,
+  cofounderGetToolTool,
   // Slack tools
   slackListChannelsTool,
   slackGetMessagesTool,
   slackSearchMessagesTool,
   slackPostMessageTool,
+  slackCreateChannelTool,
   // Dispatch tools
   dispatchTaskTool,
   dispatchStatusTool,
@@ -159,6 +170,13 @@ export async function handleToolCall(
       return handleCofounderLogLearning(args, auth);
     case 'cofounder_get_learnings':
       return handleCofounderGetLearnings(args, auth);
+    // Toolchain tools
+    case 'cofounder_add_tool':
+      return handleCofounderAddTool(args, auth);
+    case 'cofounder_list_tools':
+      return handleCofounderListTools(args, auth);
+    case 'cofounder_get_tool':
+      return handleCofounderGetTool(args, auth);
     // Slack tools
     case 'slack_list_channels':
       return handleSlackListChannels(args, auth);
@@ -168,6 +186,8 @@ export async function handleToolCall(
       return handleSlackSearchMessages(args, auth);
     case 'slack_post_message':
       return handleSlackPostMessage(args, auth);
+    case 'slack_create_channel':
+      return handleSlackCreateChannel(args, auth);
     // Dispatch tools
     case 'dispatch_task':
       return handleDispatchTask(args, auth);

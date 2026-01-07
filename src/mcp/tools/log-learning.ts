@@ -1,64 +1,40 @@
 import { z } from 'zod';
-import type { AuthContext } from '../../middleware/auth.js';
 import { logLearning } from '../../services/learning-service.js';
+import { createToolHandler } from '../../lib/tool-handler.js';
+import { createMcpToolDefinition } from '../../lib/zod-to-mcp.js';
+import { nonEmptyStringSchema, tagsSchema, optionalStringSchema } from '../../schemas/common.js';
+import { mapLearning } from '../../lib/response-mappers.js';
 
-export const cofounderLogLearningTool = {
-  name: 'cofounder_log_learning',
-  description: 'Log a standalone learning or insight. For TIL moments that don\'t belong to a specific task.',
-  inputSchema: {
-    type: 'object' as const,
-    properties: {
-      content: {
-        type: 'string',
-        description: 'The learning content - what you discovered or learned',
-      },
-      category: {
-        type: 'string',
-        description: 'Category: tech, process, personal, workflow, etc. (optional)',
-      },
-      tags: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'Tags for categorization (optional)',
-      },
-      source: {
-        type: 'string',
-        description: 'Where this learning came from (optional)',
-      },
-    },
-    required: ['content'],
-  },
-};
-
+// Define schema once with descriptions for MCP
 const inputSchema = z.object({
-  content: z.string().min(1),
-  category: z.string().optional(),
-  tags: z.array(z.string()).optional().default([]),
-  source: z.string().optional(),
+  content: nonEmptyStringSchema.describe('The learning content - what you discovered or learned'),
+  category: optionalStringSchema.describe('Category: tech, process, personal, workflow, etc. (optional)'),
+  tags: tagsSchema.describe('Tags for categorization (optional)'),
+  source: optionalStringSchema.describe('Where this learning came from (optional)'),
 });
 
-export async function handleCofounderLogLearning(args: unknown, auth: AuthContext) {
-  if (auth.isAnonymous) {
-    throw new Error('Authentication required');
+// Generate MCP tool definition from Zod schema
+export const cofounderLogLearningTool = createMcpToolDefinition(
+  'cofounder_log_learning',
+  'Log a standalone learning or insight. For TIL moments that don\'t belong to a specific task.',
+  inputSchema
+);
+
+// Handler with automatic auth check and schema validation
+export const handleCofounderLogLearning = createToolHandler(
+  inputSchema,
+  async (input, auth) => {
+    const learning = await logLearning(
+      input.content,
+      input.category || null,
+      input.tags,
+      input.source || null,
+      auth.userId || 'ai'
+    );
+
+    return {
+      ...mapLearning(learning),
+      message: 'Learning logged successfully.',
+    };
   }
-
-  const input = inputSchema.parse(args);
-
-  const learning = await logLearning(
-    input.content,
-    input.category || null,
-    input.tags,
-    input.source || null,
-    auth.userId || 'ai'
-  );
-
-  return {
-    id: learning.id,
-    content: learning.content,
-    category: learning.category,
-    tags: learning.tags,
-    source: learning.source,
-    createdAt: learning.createdAt,
-    message: 'Learning logged successfully.',
-  };
-}
+);
