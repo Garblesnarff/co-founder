@@ -50,26 +50,17 @@ export async function getActiveSession(): Promise<WorkSession | null> {
 }
 
 export async function incrementSessionTasks(sessionId: number): Promise<void> {
-  await db
-    .update(workSessions)
-    .set({
-      tasksCompleted: db.select({
-        val: workSessions.tasksCompleted
-      }).from(workSessions).where(eq(workSessions.id, sessionId))
-    })
-    .where(eq(workSessions.id, sessionId));
-
-  // Simpler approach - just increment directly
-  const session = await db
+  // Get current value and increment
+  const [session] = await db
     .select()
     .from(workSessions)
     .where(eq(workSessions.id, sessionId))
     .limit(1);
 
-  if (session[0]) {
+  if (session) {
     await db
       .update(workSessions)
-      .set({ tasksCompleted: (session[0].tasksCompleted || 0) + 1 })
+      .set({ tasksCompleted: (session.tasksCompleted || 0) + 1 })
       .where(eq(workSessions.id, sessionId));
   }
 }

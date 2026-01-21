@@ -6,6 +6,23 @@ import {
 import type { AuthContext } from '../middleware/auth.js';
 import { tools, handleToolCall } from './tools/index.js';
 
+/**
+ * Deep clone an object to strip any internal metadata or circular references.
+ * Drizzle-orm can add internal Symbol properties to query results.
+ * This ensures we return a clean, serializable object.
+ */
+function sanitize<T>(obj: T): T {
+  const seen = new WeakSet();
+  const safe = JSON.stringify(obj, (_key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) return '[Circular]';
+      seen.add(value);
+    }
+    return value;
+  });
+  return JSON.parse(safe);
+}
+
 export class CofounderMcpServer {
   private server: Server;
   private auth: AuthContext;
@@ -43,11 +60,13 @@ export class CofounderMcpServer {
 
       try {
         const result = await handleToolCall(name, args || {}, this.auth);
+        // Sanitize to strip any drizzle-orm internal metadata that could cause cycles
+        const cleanResult = sanitize(result);
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(result, null, 2),
+              text: JSON.stringify(cleanResult, null, 2),
             },
           ],
         };
